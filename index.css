@@ -1,0 +1,209 @@
+import React, { useState, useRef } from 'react';
+import { Upload, Camera, AlertCircle, Check } from 'lucide-react';
+import Tesseract from 'tesseract.js';
+
+export default function OcrFotoDocumento({ onSuccess, onFotoChange }) {
+  const [foto, setFoto] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
+  const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+
+  const estrattiDatiDaTestoOCR = (testo) => {
+    const risultati = {};
+    
+    // Pattern per email
+    const emailMatch = testo.match(/[\w\.-]+@[\w\.-]+\.\w+/);
+    if (emailMatch) risultati.email = emailMatch[0];
+
+    // Pattern per telefono (numero di 10+ cifre)
+    const telefonoMatch = testo.match(/\b\d{10,}\b/);
+    if (telefonoMatch) risultati.telefono = telefonoMatch[0];
+
+    // Pattern per codice fiscale (16 caratteri alfanumerici)
+    const cfMatch = testo.match(/[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]/i);
+    if (cfMatch) risultati.codice_fiscale = cfMatch[0].toUpperCase();
+
+    // Pattern per data (DD/MM/YYYY o DD-MM-YYYY)
+    const dataMatch = testo.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (dataMatch) {
+      const [, giorno, mese, anno] = dataMatch;
+      risultati.data_nascita = `${anno}-${mese.padStart(2, '0')}-${giorno.padStart(2, '0')}`;
+    }
+
+    // Pattern per nomi e cognomi (parole maiuscole di 3+ caratteri)
+    const nomiMatch = testo.match(/\b[A-Z]{3,}\b/g);
+    if (nomiMatch && nomiMatch.length > 0) {
+      if (!risultati.cognome) risultati.cognome = nomiMatch[0];
+      if (!risultati.nome && nomiMatch.length > 1) risultati.nome = nomiMatch.slice(1).join(' ');
+    }
+
+    // Pulisce spazi extra
+    Object.keys(risultati).forEach(key => {
+      if (typeof risultati[key] === 'string') {
+        risultati[key] = risultati[key].trim();
+      }
+    });
+
+    return risultati;
+  };
+
+  const processaFoto = async (file) => {
+    if (!file.type.startsWith('image/')) {
+      setError('Per favore, carica un\'immagine');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      setOcrProgress(0);
+      setFoto(file);
+      onFotoChange(file);
+
+      // Crea preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+
+      // OCR con Tesseract
+      const { data: { text } } = await Tesseract.recognize(
+        file,
+        'ita+eng',
+        {
+          logger: (m) => {
+            if (m.status === 'recognizing') {
+              setOcrProgress(Math.round(m.progress * 100));
+            }
+          }
+        }
+      );
+
+      // Estrai dati
+      const dati = estrattiDatiDaTestoOCR(text);
+      
+      // Set data iscrizione a oggi se non presente
+      if (!dati.data_iscrizione) {
+        const oggi = new Date().toISOString().split('T')[0];
+        dati.data_iscrizione = oggi;
+      }
+
+      onSuccess(dati);
+    } catch (err) {
+      setError(`Errore OCR: ${err.message}`);
+      console.error('Errore OCR:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) processaFoto(file);
+  };
+
+  return (
+    <div className="space-y-6">
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-red-300">{error}</p>
+        </div>
+      )}
+
+      {/* Area upload/camera */}
+      {!preview && (
+        <div className="space-y-4">
+          {/* Upload da file */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-slate-600/50 rounded-xl p-8 text-center cursor-pointer hover:border-cyan-500/50 hover:bg-slate-700/30 transition-all"
+          >
+            <Upload className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+            <p className="text-white font-medium mb-1">Carica foto documento</p>
+            <p className="text-sm text-slate-400">Clicca per selezionare un file</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </div>
+
+          {/* Oppure camera */}
+          <div className="text-center text-slate-400 text-sm">oppure</div>
+
+          <button
+            onClick={() => cameraInputRef.current?.click()}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/50 rounded-lg text-white transition-colors"
+          >
+            <Camera className="w-5 h-5" />
+            Scatta foto (Mobile)
+          </button>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+        </div>
+      )}
+
+      {/* Loading OCR */}
+      {loading && (
+        <div className="space-y-3">
+          <p className="text-center text-slate-300 font-medium">Estrazione dati in corso...</p>
+          <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-300"
+              style={{ width: `${ocrProgress}%` }}
+            ></div>
+          </div>
+          <p className="text-center text-sm text-slate-400">{ocrProgress}%</p>
+        </div>
+      )}
+
+      {/* Preview e risultati */}
+      {preview && !loading && (
+        <div className="space-y-4">
+          {/* Immagine */}
+          <div className="rounded-lg overflow-hidden border border-slate-700/50">
+            <img
+              src={preview}
+              alt="Anteprima documento"
+              className="w-full max-h-96 object-contain bg-slate-700/30"
+            />
+          </div>
+
+          {/* Bottone per ricaricare */}
+          <button
+            onClick={() => {
+              setPreview(null);
+              setFoto(null);
+              fileInputRef.current?.click();
+            }}
+            className="w-full px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 rounded-lg transition-colors"
+          >
+            Carica altra foto
+          </button>
+
+          {/* Feedback positivo */}
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 flex items-start gap-3">
+            <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-emerald-300">
+              <p className="font-medium">✓ Foto caricata con successo!</p>
+              <p className="mt-1">I dati sono stati estratti automaticamente. Verifica e modifica se necessario nel modulo seguente.</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
