@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test CRM - Supabase + GitHub + Vercel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 500px;
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .status {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .status-item {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .status-label {
+            text-align: left;
+            font-weight: bold;
+        }
+        
+        .status-value {
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .ok {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .loading {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .error {
+            background: #f44336;
+            color: white;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .message.show {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .code-block {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 14px;
+            color: #1565c0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 TEST CONNESSIONI</h1>
+        <p style="color: #666; margin-bottom: 20px;">Verifica che Supabase + GitHub + Vercel funzionano</p>
+        
+        <div class="status">
+            <div class="status-item">
+                <span class="status-label">📦 GitHub</span>
+                <span class="status-value ok">✅ ONLINE</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">🚀 Vercel</span>
+                <span class="status-value ok">✅ ONLINE</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">🗄️ Supabase</span>
+                <span id="supabase-status" class="status-value loading">⏳ Verifica...</span>
+            </div>
+        </div>
+        
+        <div class="info">
+            <strong>ℹ️ Cosa sta succedendo:</strong><br>
+            Questo file HTML è deployato su Vercel.<br>
+            Vercel sta scaricando il codice da GitHub.<br>
+            Ora prova a connettersi a Supabase.
+        </div>
+        
+        <button onclick="ciaomondo()">Clicca: Ciao Mondo!</button>
+        <button onclick="testSupabase()">Test Supabase Connection</button>
+        <button onclick="reloadPage()">🔄 Ricarica</button>
+        
+        <div id="message" class="message"></div>
+        
+        <div class="code-block">
+const message = "Ciao Mondo! 🎉";<br>
+console.log(message);
+        </div>
+    </div>
+
+    <script>
+        // Test 1: Ciao Mondo semplice
+        function ciaomondo() {
+            const message = document.getElementById('message');
+            message.textContent = '👋 CIAO MONDO! 🎉';
+            message.classList.add('show');
+            console.log('✅ Ciao Mondo funziona!');
+        }
+        
+        // Test 2: Connessione Supabase
+        function testSupabase() {
+            const statusElement = document.getElementById('supabase-status');
+            statusElement.textContent = '⏳ Testing...';
+            statusElement.className = 'status-value loading';
+            
+            // Prova a connettersi a Supabase
+            fetch('https://mkgcvnlcznixhdwcwkqg.supabase.co/rest/v1/', {
+                headers: {
+                    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1rZ2N2bmxjem5peGhkd2N3a3FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjI0NjgsImV4cCI6MjA5NTQ5ODQ2OH0.DYZTClskPITvNC-Jf8DFG3-hVZBTD91BpMI-PkZWoUQ',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.ok || response.status === 400) {
+                    statusElement.textContent = '✅ ONLINE';
+                    statusElement.className = 'status-value ok';
+                    alert('✅ Supabase è raggiungibile!');
+                } else {
+                    throw new Error('Supabase offline');
+                }
+            })
+            .catch(error => {
+                statusElement.textContent = '❌ OFFLINE';
+                statusElement.className = 'status-value error';
+                alert('❌ Errore connessione Supabase: ' + error.message);
+                console.error('Errore:', error);
+            });
+        }
+        
+        function reloadPage() {
+            location.reload();
+        }
+        
+        // Test auto Supabase al caricamento
+        window.addEventListener('load', function() {
+            const statusElement = document.getElementById('supabase-status');
+            
+            fetch('https://mkgcvnlcznixhdwcwkqg.supabase.co/rest/v1/', {
+                headers: {
+                    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1rZ2N2bmxjem5peGhkd2N3a3FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjI0NjgsImV4cCI6MjA5NTQ5ODQ2OH0.DYZTClskPITvNC-Jf8DFG3-hVZBTD91BpMI-PkZWoUQ',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                statusElement.textContent = '✅ ONLINE';
+                statusElement.className = 'status-value ok';
+            })
+            .catch(error => {
+                statusElement.textContent = '❌ OFFLINE';
+                statusElement.className = 'status-value error';
+                console.error('Errore Supabase:', error);
+            });
+        });
+        
+        console.log('🚀 Test page loaded successfully!');
+    </script>
+</body>
+</html>
